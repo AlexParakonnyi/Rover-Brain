@@ -2,10 +2,14 @@
 #include "servers.h"
 #include "motor_control.h"
 #include "global.h"
+#include <charger.h>
 
-// Асинхронный сервер и WebSocket - полная версия для управления
+// Асинхронный сервер и WebSocket для управления моторами
 AsyncWebServer server(82);
 AsyncWebSocket wsCarInput("/RoverControl");
+
+// Асинхронный http сервер для изменения настроек камены и получения данных от зарядного устройства
+AsyncWebServer server2(83);
 
 // Глобальные переменные (объявление)
 volatile int8_t controlClientId = -1;
@@ -97,5 +101,20 @@ void onAsyncWebSocketEvent(AsyncWebSocket * server, AsyncWebSocketClient * clien
         default:
             break;
     }
+}
+
+void handleVoltageRequest(AsyncWebServerRequest *request) {
+    request->send(200, "application/json", getVoltageJson());
+}
+
+void initServers() {
+        // Инициализация серверов
+    wsCarInput.onEvent(onAsyncWebSocketEvent);
+    server.addHandler(&wsCarInput);
+    server.begin();
+    Serial.println("Async WebSocket server started");
+
+    server2.on("/voltage", HTTP_GET, handleVoltageRequest);
+    server2.begin();
 }
 
