@@ -105,7 +105,6 @@
 
     /* Логотип (картонный ровер) */
     .logo {
-      margin-left: 50px;
       width: 60px;
       height: 60px;
       background: url("./123.png") no-repeat center/cover; /* Замените на свой логотип */
@@ -113,6 +112,7 @@
 
     /* Надпись Rover в центре */
     .title {
+      margin-left: 20px;
       color: white;
       font-size: 24px;
       font-weight: bold;
@@ -135,16 +135,16 @@
 
     /* Классы для заполнения цветом */
     .red {
-      background-color: red;
+      background-color: rgba(230, 0, 0, 0.4);
     }
     .orange {
-      background-color: orange;
+      background-color: rgba(245, 133, 5, 0.4);
     }
     .yellow {
-      background-color: yellow;
+      background-color: rgba(247, 243, 38, 0.4);
     }
     .green {
-      background-color: green;
+      background-color: rgba(29, 215, 42, 0.4);
     }
 
     .lightning {
@@ -158,14 +158,22 @@
       align-items: center;
       margin-right: 50px;
     }
+
+    .logo-container {
+      display: flex;
+      align-items: center;
+      margin-left: 50px;
+    }
   </style>
   <body>
     <!-- <h1>ESP32-CAM Video Stream</h1> -->
     <div class="wrapper">
       <img id="stream" />
       <header>
-        <div class="logo"></div>
-        <div class="title">Fucken Rover</div>
+        <div class="logo-container">
+          <div class="logo"></div>
+          <div class="title">Cardboard Rover</div>
+        </div>
         <div class="battery-container">
           <div class="lightning" id="lightning"></div>
           <div class="battery-indicator" id="battery">
@@ -465,16 +473,29 @@
       //_______________________________________________________
       // Функция для обновления индикатора зарядки
       function updateBattery(value) {
-        const val = Math.round(value / 4);
+        const val = Math.floor(value / 4);
         const squares = document.querySelectorAll(".battery-square");
         squares.forEach((square) => {
           const level = parseInt(square.getAttribute("data-level"));
           square.classList.remove("red", "orange", "yellow", "green");
           if (level <= val) {
-            if (level === 1) square.classList.add("red");
-            else if (level === 2) square.classList.add("orange");
-            else if (level === 3) square.classList.add("yellow");
-            else if (level === 4) square.classList.add("green");
+            if (level === 1) {
+              setTimeout(() => {
+                square.classList.add("red");
+              }, 200);
+            } else if (level === 2) {
+              setTimeout(() => {
+                square.classList.add("orange");
+              }, 400);
+            } else if (level === 3) {
+              setTimeout(() => {
+                square.classList.add("yellow");
+              }, 600);
+            } else if (level === 4) {
+              setTimeout(() => {
+                square.classList.add("green");
+              }, 800);
+            }
           }
         });
       }
@@ -534,6 +555,22 @@
         getBatteryValue();
         getCharging();
       }, 0);
+
+      // setTimeout(() => {
+      //   updateBattery(16);
+      // }, 1000);
+
+      // setTimeout(() => {
+      //   updateBattery(12);
+      // }, 2000);
+
+      // setTimeout(() => {
+      //   updateBattery(8);
+      // }, 3000);
+
+      // setTimeout(() => {
+      //   updateBattery(3);
+      // }, 4000);
 
       setInterval(() => {
         getBatteryValue();
