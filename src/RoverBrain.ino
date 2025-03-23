@@ -3,7 +3,7 @@
 #include "network.h"
 #include "servers.h"
 #include "motor_control.h"
-#include "charger.h"
+#include "battery.h"
 
 void testMotors() {
     goForward(100);

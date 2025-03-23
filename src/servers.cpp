@@ -2,7 +2,7 @@
 #include "servers.h"
 #include "motor_control.h"
 #include "global.h"
-#include <charger.h>
+#include <battery.h>
 
 // Асинхронный сервер и WebSocket для управления моторами
 AsyncWebServer server(82);
@@ -104,17 +104,49 @@ void onAsyncWebSocketEvent(AsyncWebSocket * server, AsyncWebSocketClient * clien
 }
 
 void handleVoltageRequest(AsyncWebServerRequest *request) {
-    request->send(200, "application/json", getVoltageJson());
+    AsyncWebServerResponse *response = request->beginResponse(200, "application/json", getVoltageJson());
+    response->addHeader("Access-Control-Allow-Origin", "*"); // Разрешает запросы от всех источников
+    response->addHeader("Access-Control-Allow-Methods", "GET, OPTIONS"); // Разрешенные методы
+    response->addHeader("Access-Control-Allow-Headers", "Content-Type"); // Разрешенные заголовки
+    request->send(response);
+}
+
+void handleChargingRequest(AsyncWebServerRequest *request) {
+     AsyncWebServerResponse *response = request->beginResponse(200, "application/json", getChargingJson());
+    response->addHeader("Access-Control-Allow-Origin", "*"); // Разрешает запросы от всех источников
+    response->addHeader("Access-Control-Allow-Methods", "GET, OPTIONS"); // Разрешенные методы
+    response->addHeader("Access-Control-Allow-Headers", "Content-Type"); // Разрешенные заголовки
+    request->send(response);
 }
 
 void initServers() {
-        // Инициализация серверов
+    // Инициализация серверов
     wsCarInput.onEvent(onAsyncWebSocketEvent);
     server.addHandler(&wsCarInput);
     server.begin();
     Serial.println("Async WebSocket server started");
 
-    server2.on("/voltage", HTTP_GET, handleVoltageRequest);
+    server2.on("/battery", HTTP_GET, handleVoltageRequest);
+    // Обработчик OPTIONS для CORS
+    server2.on("/battery", HTTP_OPTIONS, [](AsyncWebServerRequest *request) {
+        Serial.println("Получен запрос OPTIONS"); // Отладочное сообщение
+        AsyncWebServerResponse *response = request->beginResponse(200);
+        response->addHeader("Access-Control-Allow-Origin", "*");
+        response->addHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+        response->addHeader("Access-Control-Allow-Headers", "Content-Type");
+        request->send(response);
+    });
+
+    server2.on("/charging", HTTP_GET, handleChargingRequest);
+    server2.on("/charging", HTTP_OPTIONS, [](AsyncWebServerRequest *request) {
+        Serial.println("Получен запрос OPTIONS"); // Отладочное сообщение
+        AsyncWebServerResponse *response = request->beginResponse(200);
+        response->addHeader("Access-Control-Allow-Origin", "*");
+        response->addHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+        response->addHeader("Access-Control-Allow-Headers", "Content-Type");
+        request->send(response);
+    });
+
     server2.begin();
 }
 

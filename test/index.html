@@ -89,11 +89,93 @@
       height: 80px;
       transition: all 0.1s ease;
     }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 20px;
+      background: rgba(75, 0, 130, 0.2); /* Полупрозрачный indigo */
+      backdrop-filter: blur(5px); /* Эффект размытия */
+      position: fixed;
+      width: 100%;
+      top: 0;
+      box-sizing: border-box;
+    }
+
+    /* Логотип (картонный ровер) */
+    .logo {
+      margin-left: 50px;
+      width: 60px;
+      height: 60px;
+      background: url("./123.png") no-repeat center/cover; /* Замените на свой логотип */
+    }
+
+    /* Надпись Rover в центре */
+    .title {
+      color: white;
+      font-size: 24px;
+      font-weight: bold;
+      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+    }
+
+    /* Контейнер для индикатора зарядки */
+    .battery-indicator {
+      display: flex;
+      /* gap: 1px; */
+    }
+
+    /* Стили для квадратов индикатора */
+    .battery-square {
+      width: 10px;
+      height: 10px;
+      border: 1px solid #000;
+      transition: background-color 0.3s ease;
+    }
+
+    /* Классы для заполнения цветом */
+    .red {
+      background-color: red;
+    }
+    .orange {
+      background-color: orange;
+    }
+    .yellow {
+      background-color: yellow;
+    }
+    .green {
+      background-color: green;
+    }
+
+    .lightning {
+      width: 40px;
+      height: 40px;
+      background: url("./lightning.png") no-repeat center/cover; /* Замените на свой логотип */
+    }
+
+    .battery-container {
+      display: flex;
+      align-items: center;
+      margin-right: 50px;
+    }
   </style>
   <body>
     <!-- <h1>ESP32-CAM Video Stream</h1> -->
     <div class="wrapper">
       <img id="stream" />
+      <header>
+        <div class="logo"></div>
+        <div class="title">Fucken Rover</div>
+        <div class="battery-container">
+          <div class="lightning" id="lightning"></div>
+          <div class="battery-indicator" id="battery">
+            <div class="battery-square" data-level="1"></div>
+            <div class="battery-square" data-level="2"></div>
+            <div class="battery-square" data-level="3"></div>
+            <div class="battery-square" data-level="4"></div>
+          </div>
+        </div>
+      </header>
       <div class="joystick" id="joystick">
         <div class="direction corner" id="nw"></div>
         <div class="direction middle-vertical" id="n"></div>
@@ -379,6 +461,87 @@
       function leaveDroppable(elem) {
         elem.style.background = "";
       }
+
+      //_______________________________________________________
+      // Функция для обновления индикатора зарядки
+      function updateBattery(value) {
+        const val = Math.round(value / 4);
+        const squares = document.querySelectorAll(".battery-square");
+        squares.forEach((square) => {
+          const level = parseInt(square.getAttribute("data-level"));
+          square.classList.remove("red", "orange", "yellow", "green");
+          if (level <= val) {
+            if (level === 1) square.classList.add("red");
+            else if (level === 2) square.classList.add("orange");
+            else if (level === 3) square.classList.add("yellow");
+            else if (level === 4) square.classList.add("green");
+          }
+        });
+      }
+
+      function updateCharging(value) {
+        const lightning = document.getElementById("lightning");
+        if (value) {
+          lightning.style.display = "block";
+        } else {
+          lightning.style.display = "none";
+        }
+      }
+
+      async function getBatteryValue() {
+        try {
+          const response = await fetch("http://192.168.100.134:83/battery", {
+            method: "GET",
+            mode: "cors", // Явно указываем режим CORS
+            headers: {
+              "Content-Type": "application/json",
+            },
+          });
+          if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+          }
+          const data = await response.json();
+          batteryValue = data.battery;
+          console.log("Battery: ", batteryValue);
+          updateBattery(batteryValue);
+        } catch (error) {
+          console.error("Ошибка при получении данных батареи:", error.message);
+        }
+      }
+
+      async function getCharging() {
+        try {
+          const response = await fetch("http://192.168.100.134:83/charging", {
+            method: "GET",
+            mode: "cors", // Явно указываем режим CORS
+            headers: {
+              "Content-Type": "application/json",
+            },
+          });
+          if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+          }
+          const data = await response.json();
+          charging = data.charging;
+          // console.log("Charging: ", charging);
+          updateCharging(charging);
+        } catch (error) {
+          console.error("Ошибка при получении данных о зарядке:", error);
+        }
+      }
+
+      setTimeout(() => {
+        getBatteryValue();
+        getCharging();
+      }, 0);
+
+      setInterval(() => {
+        getBatteryValue();
+      }, 120000);
+
+      setInterval(() => {
+        getCharging();
+      }, 1000);
     </script>
   </body>
 </html>

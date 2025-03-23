@@ -11,7 +11,7 @@ IPAddress subnet(255, 255, 0, 0);
 bool initWiFi() {
     WiFi.mode(WIFI_STA);
     WiFi.config(localIP, localGateway, subnet);
-    WiFi.setTxPower(WIFI_POWER_19_5dBm);
+    WiFi.setTxPower(WIFI_POWER_8_5dBm); // WIFI_POWER_19_5dBm
     WiFi.begin(ssid, password);
     WiFi.setSleep(false);
 

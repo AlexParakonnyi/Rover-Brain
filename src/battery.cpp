@@ -1,8 +1,9 @@
 #include <ArduinoJson.h>
-#include <charger.h>
+#include <battery.h>
 #include <voltage_data.h>
 
 StaticJsonDocument<300> voltageJson;
+StaticJsonDocument<300> chargingJson;
 
 // Массив для хранения 5 значений
 const int numReadings = 50;
@@ -108,17 +109,28 @@ char *getVoltageJson() {
   float *arr = getArray();
   float averageBatteryVoltage = getAverageVoltage();
 
-  Serial.print("Filtered Average Battery Voltage: ");
-  Serial.print(averageBatteryVoltage, 2);
-  Serial.println(" V");
+  // Serial.print("Filtered Average Battery Voltage: ");
+  // Serial.print(averageBatteryVoltage, 2);
+  // Serial.println(" V");
 
   // Заполняем JSON
-  voltageJson["is charging"] = digitalRead(IN20);
-  voltageJson["battery"] = averageBatteryVoltage;
-  voltageJson["approximate voltage"] = findVRealFromCorrected(averageBatteryVoltage);
+  // voltageJson["is charging"] = digitalRead(IN20);
+  voltageJson["value"] = averageBatteryVoltage;
+  voltageJson["battery"] = findVRealFromCorrected(averageBatteryVoltage);
 
-  static char jsonBuffer[512];  // Увеличиваем буфер, JSON большой
+  static char jsonBuffer[512];  // Увеличиваем буфер, JSON большой 256 -> 512 -> 1024
   serializeJson(voltageJson, jsonBuffer);
+
+  return jsonBuffer;
+}
+
+char *getChargingJson() {
+
+  // Заполняем JSON
+  chargingJson["charging"] = digitalRead(IN20);
+
+  static char jsonBuffer[512];  // Увеличиваем буфер, JSON большой 256 -> 512 -> 1024
+  serializeJson(chargingJson, jsonBuffer);
 
   return jsonBuffer;
 }

@@ -1,5 +1,5 @@
-#ifndef CHARGER_H
-#define CHARGER_H
+#ifndef BATTERY_H
+#define BATTERY_H
 
 
 // Пины для управления направлением
@@ -9,6 +9,8 @@
 
 void init_array();
 void initChargerPins();
+char *getChargingJson();
 char *getVoltageJson();
+float getAverageVoltage();
 
 #endif
