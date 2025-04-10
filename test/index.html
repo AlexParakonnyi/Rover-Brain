@@ -172,7 +172,7 @@
       <header>
         <div class="logo-container">
           <div class="logo"></div>
-          <div class="title">Cardboard Rover</div>
+          <div class="title">Carboard Rover</div>
         </div>
         <div class="battery-container">
           <div class="lightning" id="lightning"></div>
@@ -200,8 +200,17 @@
       <div class="edditional-panel" id="edd_panel"></div>
     </div>
     <script>
-      var wsControl = new WebSocket("ws://192.168.100.134:82/RoverControl"); // Замените IP на ваш
-      var wsCam = new WebSocket("ws://192.168.100.133:81"); // Замените IP на ваш
+      // var wsControl = new WebSocket("ws://192.168.100.134:82/RoverControl");
+      // var wsCam = new WebSocket("ws://192.168.100.133:81");
+
+      const IP = "192.168.100.134";
+      const IP_Camera = "192.168.100.133";
+      // const IP_Camera = "204.112.129.31";
+      // const IP = "204.112.129.31";
+
+      var wsControl = new WebSocket(`ws://${IP}:8082/RoverControl`);
+      var wsCam = new WebSocket(`ws://${IP_Camera}:8081`);
+
       var stream = document.getElementById("stream");
 
       //remove joystick if touch doesn't support
@@ -247,55 +256,284 @@
         console.error("WebSocket CONTROL error:", err);
       };
 
-      function sendCommand(key, value) {
-        // Формируем JSON-объект
-        var data = {
-          key: key,
-          value: value,
+      // function sendCommand(key, value) {
+      //   // Формируем JSON-объект
+      //   var data = {
+      //     key: key,
+      //     value: value,
+      //   };
+
+      //   console.log(data);
+      //   // Отправляем JSON как строку
+      //   wsControl.send(JSON.stringify(data));
+      // }
+
+      // Функция для отправки команды
+      const sendCommand = ({ speed, direction }) => {
+        // console.log("Direction: ", direction);
+        if (wsControl.readyState !== WebSocket.OPEN) {
+          console.log("WebSocket not connected");
+          return;
+        }
+        const motorSettings = getMotorSettings({ speed, direction });
+        const command = {
+          type: "move",
+          motors: motorSettings,
         };
-        // Отправляем JSON как строку
-        wsControl.send(JSON.stringify(data));
+        wsControl.send(JSON.stringify(command));
+      };
+
+      // Возможные направления
+      const directions = {
+        n: "n", // вперёд
+        s: "s", // назад
+        e: "e", // направо
+        w: "w", // налево
+        nw: "nw", // вперёд-налево
+        ne: "ne", // вперёд-направо
+        sw: "sw", // назад-налево
+        se: "se", // назад-направо
+      };
+
+      // Функция для расчёта параметров моторов
+      const getMotorSettings = ({ speed, direction }) => {
+        console.log("Direction: ", direction);
+        const motors = {
+          motor1: { direction: 0, speed: 0 }, // Передний левый
+          motor2: { direction: 0, speed: 0 }, // Задний левый
+          motor3: { direction: 0, speed: 0 }, // Передний правый
+          motor4: { direction: 0, speed: 0 }, // Задний правый
+        };
+
+        const turnReduction = 0.3; // Уменьшаем скорость внутренних колёс на 30%
+
+        switch (direction) {
+          case directions.n: // Вперёд
+            motors.motor1 = { direction: 1, speed };
+            motors.motor2 = { direction: 1, speed };
+            motors.motor3 = { direction: 1, speed };
+            motors.motor4 = { direction: 1, speed };
+            break;
+
+          case directions.s: // Назад
+            motors.motor1 = { direction: -1, speed };
+            motors.motor2 = { direction: -1, speed };
+            motors.motor3 = { direction: -1, speed };
+            motors.motor4 = { direction: -1, speed };
+            break;
+
+          case directions.e: // Направо
+            motors.motor1 = { direction: -1, speed };
+            motors.motor2 = { direction: -1, speed };
+            motors.motor3 = { direction: 1, speed };
+            motors.motor4 = { direction: 1, speed };
+            break;
+
+          case directions.w: // Налево
+            motors.motor1 = { direction: 1, speed };
+            motors.motor2 = { direction: 1, speed };
+            motors.motor3 = { direction: -1, speed };
+            motors.motor4 = { direction: -1, speed };
+            break;
+
+          case directions.nw: // Вперёд-налево
+            motors.motor1 = { direction: 1, speed };
+            motors.motor2 = { direction: 1, speed };
+            motors.motor3 = { direction: 1, speed: speed * turnReduction };
+            motors.motor4 = { direction: 1, speed: speed * turnReduction };
+            break;
+
+          case directions.ne: // Вперёд-направо
+            motors.motor1 = { direction: 1, speed: speed * turnReduction };
+            motors.motor2 = { direction: 1, speed: speed * turnReduction };
+            motors.motor3 = { direction: 1, speed };
+            motors.motor4 = { direction: 1, speed };
+            break;
+
+          case directions.sw: // Назад-налево
+            motors.motor1 = { direction: -1, speed };
+            motors.motor2 = { direction: -1, speed };
+            motors.motor3 = { direction: -1, speed: speed * turnReduction };
+            motors.motor4 = { direction: -1, speed: speed * turnReduction };
+            break;
+
+          case directions.se: // Назад-направо
+            motors.motor1 = { direction: -1, speed: speed * turnReduction };
+            motors.motor2 = { direction: -1, speed: speed * turnReduction };
+            motors.motor3 = { direction: -1, speed };
+            motors.motor4 = { direction: -1, speed };
+            break;
+
+          default: // Стоп
+            motors.motor1 = { direction: 0, speed: 0 };
+            motors.motor2 = { direction: 0, speed: 0 };
+            motors.motor3 = { direction: 0, speed: 0 };
+            motors.motor4 = { direction: 0, speed: 0 };
+            break;
+        }
+
+        return motors;
+      };
+
+      // Объект для отслеживания состояния клавиш
+      const keyState = {
+        w: false, // Вперёд
+        s: false, // Назад
+        a: false, // Влево
+        d: false, // Вправо
+      };
+
+      // Функция для определения направления
+      const determineDirection = () => {
+        // Проверяем конфликты
+        if (keyState.w && keyState.s) {
+          return "stop"; // Конфликт: вперёд и назад
+        }
+        if (keyState.a && keyState.d) {
+          return "stop"; // Конфликт: влево и вправо
+        }
+
+        // Проверяем комбинации
+        if (keyState.w && keyState.a) {
+          return "nw"; // Вперёд и влево
+        } else if (keyState.w && keyState.d) {
+          return "ne"; // Вперёд и вправо
+        } else if (keyState.s && keyState.a) {
+          return "sw"; // Назад и влево
+        } else if (keyState.s && keyState.d) {
+          return "se"; // Назад и вправо
+        } else if (keyState.w) {
+          return "n"; // Только вперёд
+        } else if (keyState.s) {
+          return "s"; // Только назад
+        } else if (keyState.a) {
+          return "w"; // Только влево
+        } else if (keyState.d) {
+          return "e"; // Только вправо
+        }
+
+        // Если ни одна клавиша не нажата
+        return "stop";
+      };
+
+      // Функция для обработки нажатия клавиш
+      function handleKeysDown(e) {
+        e.preventDefault();
+
+        // Обновляем состояние клавиши
+        switch (e.key.toLowerCase()) {
+          case "w":
+            keyState.w = true;
+            break;
+          case "s":
+            keyState.s = true;
+            break;
+          case "a":
+            keyState.a = true;
+            break;
+          case "d":
+            keyState.d = true;
+            break;
+          default:
+            return; // Игнорируем неподдерживаемые клавиши
+        }
+
+        // Определяем направление
+        const direction = determineDirection();
+        const speed = direction === "stop" ? 0 : 250;
+
+        // Отправляем команду
+        console.log("Direction from: ", direction);
+        sendCommand({ speed, direction });
       }
+
+      // Функция для обработки отпускания клавиш
+      function handleKeysUp(e) {
+        e.preventDefault();
+
+        // Обновляем состояние клавиши
+        switch (e.key.toLowerCase()) {
+          case "w":
+            keyState.w = false;
+            break;
+          case "s":
+            keyState.s = false;
+            break;
+          case "a":
+            keyState.a = false;
+            break;
+          case "d":
+            keyState.d = false;
+            break;
+          default:
+            return; // Игнорируем неподдерживаемые клавиши
+        }
+
+        // Определяем направление
+        const direction = determineDirection();
+        const speed = direction === "stop" ? 0 : 200;
+
+        // Отправляем команду
+        sendCommand({ speed, direction });
+      }
+
+      // Привязываем обработчики событий
+      document.addEventListener("keydown", handleKeysDown);
+      document.addEventListener("keyup", handleKeysUp);
 
       // ______________________________________
       // Joystick
-      function handleKeysDown(e) {
-        {
-          e.preventDefault();
+      // function handleKeysDown(e) {
+      //   {
+      //     e.preventDefault();
 
-          switch (event.key.toLowerCase()) {
-            case "w": // Вверх
-              sendCommand("MoveCar", "n");
-              break;
-            case "s": // Вниз
-              sendCommand("MoveCar", "s");
-              break;
-            case "a": // Влево
-              sendCommand("MoveCar", "w");
-              break;
-            case "d": // Вправо
-              sendCommand("MoveCar", "e");
-              break;
-          }
-        }
-      }
+      //     const speed = 200;
+      //     // console.log("Key pressed: ", e.key);
+      //     switch (event.key.toLowerCase()) {
+      //       case "w": // Вверх
+      //         sendCommand({
+      //           speed: speed,
+      //           direction: "n",
+      //         });
+      //         break;
+      //       case "s": // Вниз
+      //         sendCommand({
+      //           speed: speed,
+      //           direction: "s",
+      //         });
+      //         break;
+      //       case "a": // Влево
+      //         sendCommand("MoveCar", "w");
+      //         break;
+      //       case "d": // Вправо
+      //         sendCommand("MoveCar", "e");
+      //         break;
+      //       default:
+      //         sendCommand("MoveCar", "n");
+      //         break;
+      //     }
+      //   }
+      // }
 
-      function handleKeysUp(e) {
-        event.preventDefault();
+      // function handleKeysUp(e) {
+      //   event.preventDefault();
 
-        switch (e.key.toLowerCase()) {
-          case "w": // Вверх
-          case "s": // Вниз
-          case "a": // Влево
-          case "d": // Вправо
-            sendCommand("MoveCar", "stop");
-            break;
-        }
-      }
-      // Обработчики клавиш
-      document.addEventListener("keydown", (e) => handleKeysDown(e));
+      //   switch (e.key.toLowerCase()) {
+      //     case "w": // Вверх
+      //     case "s": // Вниз
+      //     case "a": // Влево
+      //     case "d": // Вправо
+      //       sendCommand("MoveCar", "stop");
+      //       break;
+      //   }
+      // }
+      // // Обработчики клавиш
+      // document.addEventListener("keydown", (e) => handleKeysDown(e));
 
-      document.addEventListener("keyup", (e) => handleKeysUp(e));
+      // document.addEventListener("keyup", (e) => handleKeysUp(e));
+
+      //________________________________________________________
+      // Функция для проверки поддержки сенсорного экрана
 
       function checkTouchSupport() {
         let isTouchSupported = false;
@@ -319,7 +557,6 @@
         }
         return isTouchSupported;
       }
-
       // Автоматическая проверка при загрузке страницы
       window.onload = checkTouchSupport;
 
@@ -473,7 +710,7 @@
       //_______________________________________________________
       // Функция для обновления индикатора зарядки
       function updateBattery(value) {
-        const val = Math.floor(value / 4);
+        const val = Math.floor((value - 8) / 2);
         const squares = document.querySelectorAll(".battery-square");
         squares.forEach((square) => {
           const level = parseInt(square.getAttribute("data-level"));
@@ -511,7 +748,7 @@
 
       async function getBatteryValue() {
         try {
-          const response = await fetch("http://192.168.100.134:83/battery", {
+          const response = await fetch(`http://${IP}:8083/battery`, {
             method: "GET",
             mode: "cors", // Явно указываем режим CORS
             headers: {
@@ -532,7 +769,7 @@
 
       async function getCharging() {
         try {
-          const response = await fetch("http://192.168.100.134:83/charging", {
+          const response = await fetch(`http://${IP}:8083/charging`, {
             method: "GET",
             mode: "cors", // Явно указываем режим CORS
             headers: {

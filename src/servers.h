@@ -5,10 +5,10 @@
 #include <ESPAsyncWebServer.h>
 
 // Асинхронный сервер и WebSocket
-extern AsyncWebServer server;
-extern AsyncWebSocket wsCarInput;
+// extern AsyncWebServer server;
+// extern AsyncWebSocket wsCarInput;
 
-extern AsyncWebServer server2;
+// extern AsyncWebServer server2;
 
 // Функции
 void handleWebSocketMessage(AsyncWebSocketClient *client, uint8_t *data, size_t len);
