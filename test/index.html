@@ -699,7 +699,10 @@
       function enterDroppable(elem) {
         if (elem.id === "center") return;
         elem.style.background = "pink";
-        sendCommand("MoveCar", elem.id);
+        sendCommand({
+          speed: 200,
+          direction: elem.id,
+        });
         console.log("Enter on the field ", elem.id);
       }
 
